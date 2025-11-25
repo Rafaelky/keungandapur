@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistem Keuangan Dapur Asrama</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        glass: {
+                            100: 'rgba(255, 255, 255, 0.05)',
+                            200: 'rgba(255, 255, 255, 0.1)',
+                            300: 'rgba(255, 255, 255, 0.2)',
+                            border: 'rgba(255, 255, 255, 0.1)',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.8s ease-out forwards',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React & Babel -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #0f172a; /* Dark Background for Screen */
+            color: #e2e8f0;
+            overflow-x: hidden;
+            font-size: 14px;
+        }
+        
+        /* Stable Background Gradient */
+        .bg-fixed-gradient {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+            z-index: -10;
+        }
+
+        /* Decorative Elements */
+        .deco-blob {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -5;
+            opacity: 0.3;
+        }
+        .blob-1 { top: -10%; right: -10%; width: 600px; height: 600px; background: #4f46e5; }
+        .blob-2 { bottom: -10%; left: -10%; width: 500px; height: 500px; background: #ec4899; }
+
+        /* Premium Glass Card */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .glass-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: all 0.2s;
+        }
+        .glass-input:focus {
+            border-color: #6366f1;
+            background: rgba(15, 23, 42, 0.8);
+            outline: none;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+
+        /* --- SETTINGAN KHUSUS PRINT & PDF --- */
+        @media print {
+            .no-print { display: none !important; }
+            
+            /* Paksa Background Putih Bersih */
+            body, html { 
+                background-color: white !important; 
+                background-image: none !important;
+                color: black !important; 
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            
+            /* Sembunyikan Elemen Dekorasi */
+            .bg-fixed-gradient, .deco-blob, #bg-music { display: none !important; }
+            
+            /* Reset Style Kartu menjadi Flat (Ala Excel/Kertas) */
+            .glass-card { 
+                background: white !important; 
+                box-shadow: none !important; 
+                border: none !important; 
+                color: black !important; 
+                backdrop-filter: none !important;
+                padding: 0 !important;
+                margin-bottom: 20px !important;
+            }
+
+            /* Reset Warna Text */
+            .text-slate-400, .text-indigo-200, .text-indigo-300, .text-gray-500 { color: #333 !important; }
+            .text-white { color: #000 !important; }
+            .text-emerald-400, .text-green-600 { color: #000 !important; font-weight: bold; } 
+            .text-rose-400, .text-red-600 { color: #000 !important; } 
+
+            /* Border Tabel */
+            .print-border { border: 1px solid #000 !important; border-collapse: collapse !important; width: 100%; }
+            .print-border th, .print-border td { border: 1px solid #000 !important; padding: 4px 8px !important; }
+            .print-header { display: block !important; text-align: center; margin-bottom: 20px; border-bottom: 2px solid black; padding-bottom: 10px; }
+            
+            thead, tbody, tr, td, th { background: transparent !important; }
+            
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+        .print-header { display: none; }
+    </style>
+</head>
+<body>
+    <!-- Stabilized Background -->
+    <div class="bg-fixed-gradient"></div>
+    <div class="deco-blob blob-1"></div>
+    <div class="deco-blob blob-2"></div>
+    
+    <!-- Root App Container -->
+    <div id="root" class="relative z-10"></div>
+
+    <!-- Hidden Audio -->
+    <audio id="bg-music" loop>
+        <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3" type="audio/mp3">
+    </audio>
+
+    <script type="text/babel">
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBoeIuMCbJtOOR1blXFnnbOU6GbKVtvisw",
+            authDomain: "keuangan-asrama.firebaseapp.com",
+            projectId: "keuangan-asrama",
+            storageBucket: "keuangan-asrama.firebasestorage.app",
+            messagingSenderId: "403580783330",
+            appId: "1:403580783330:web:7ac6832917d87b43c3ecbb",
+            measurementId: "G-E31C9KH2W4"
+        };
+
+        let app, db, auth;
+        const appId = "aplikasi-kost-v1";
+        const MEMBERS = ["Abdul", "Adam", "Ade", "Adi", "Ali", "Andika", "M. Hisyam", "Naufal", "Rahmat", "Syaefulloh", "Yuda"];
+        const DEFAULT_CATS = {
+            income: ['Iuran Bulanan', 'Uang Riset', 'Tambahan', 'Sisa Bulan Lalu'],
+            expense: ['Belanja Pasar', 'Gas', 'Air Galon', 'Bumbu', 'Lain-lain']
+        };
+
+        // Robust Initialization
+        try {
+            if (!firebase.apps.length) {
+                app = firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                auth = firebase.auth();
+                db.enablePersistence().catch(e => console.warn("Persistence disabled:", e.code));
+            } else {
+                app = firebase.app();
+                db = firebase.firestore();
+                auth = firebase.auth();
+            }
+        } catch (e) {
+            console.error("Firebase Init Error", e);
+            document.body.innerHTML = `<div style="color:white; text-align:center; padding:20px;">Gagal memuat Database. Periksa koneksi internet Anda.</div>`;
+        }
+
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- ICONS ---
+        const Icons = {
+            Wallet: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>,
+            TrendingUp: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>,
+            TrendingDown: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>,
+            Plus: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>,
+            FileText: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>,
+            Users: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>,
+            CloudCheck: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>,
+            CloudOff: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414"></path></svg>,
+            Trash: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>,
+            Lock: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>,
+            LogOut: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>,
+            Printer: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>,
+            Edit: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>,
+            Settings: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>,
+            Close: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>,
+            Tag: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>,
+            Star: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>,
+            Music: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path></svg>,
+            Play: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>,
+            Pause: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>,
+            Download: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>,
+            
+            // Categories
+            Fire: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"></path></svg>,
+            Droplet: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>,
+            Cart: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>,
+            Box: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>,
+            Sparkles: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 3.214L13 21l-2.286-6.857L5 12l5.714-3.214z"></path></svg>,
+            Money: ({className}) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        };
+
+        const formatRupiah = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n).replace('Rp', 'Rp ');
+        const formatDate = (d) => new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        
+        const getCategoryIcon = (category) => {
+            switch(category) {
+                case 'Gas': return <Icons.Fire className="w-5 h-5 text-orange-400"/>;
+                case 'Air Galon': return <Icons.Droplet className="w-5 h-5 text-cyan-400"/>;
+                case 'Belanja Pasar': return <Icons.Cart className="w-5 h-5 text-green-400"/>;
+                case 'Bumbu': return <Icons.Sparkles className="w-5 h-5 text-yellow-400"/>;
+                case 'Lain-lain': return <Icons.Box className="w-5 h-5 text-purple-400"/>;
+                default: return <Icons.Money className="w-5 h-5 text-emerald-400"/>;
+            }
+        };
+
+        // --- COMPONENTS ---
+
+        // MUSIC PLAYER
+        const MusicPlayer = () => {
+            const [isPlaying, setIsPlaying] = useState(false);
+            const audioRef = useRef(null);
+
+            useEffect(() => {
+                const audio = document.getElementById('bg-music');
+                if (audio) {
+                    audioRef.current = audio;
+                    audio.volume = 0.4;
+                }
+            }, []);
+
+            const togglePlay = () => {
+                if (!audioRef.current) return;
+                if (isPlaying) audioRef.current.pause();
+                else audioRef.current.play().catch(e => alert("Klik 'Play' lagi untuk memulai musik (Kebijakan Browser)"));
+                setIsPlaying(!isPlaying);
+            };
+
+            return (
+                <button onClick={togglePlay} className="fixed bottom-6 right-6 z-50 glass-card px-4 py-2 rounded-full flex items-center gap-3 hover:bg-white/10 transition-all group no-print shadow-lg border-white/20 text-white">
+                    {isPlaying ? <Icons.Pause className="w-4 h-4"/> : <Icons.Play className="w-4 h-4"/>}
+                    <span className="text-xs font-bold uppercase tracking-widest group-hover:text-emerald-400 transition-colors">{isPlaying ? 'Pause Music' : 'Play Music'}</span>
+                </button>
+            );
+        };
+
+        // MODAL KATEGORI
+        const CategoryManagerModal = ({ isOpen, onClose, categories, onSave }) => {
+            const [newCat, setNewCat] = useState('');
+            const [activeTab, setActiveTab] = useState('income'); 
+
+            if (!isOpen) return null;
+
+            const handleAdd = () => {
+                if (!newCat.trim()) return;
+                const updatedList = [...categories[activeTab], newCat];
+                onSave({ ...categories, [activeTab]: updatedList });
+                setNewCat('');
+            };
+
+            const handleDelete = (catToDelete) => {
+                if (!confirm(`Hapus kategori "${catToDelete}"?`)) return;
+                const updatedList = categories[activeTab].filter(c => c !== catToDelete);
+                onSave({ ...categories, [activeTab]: updatedList });
+            };
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+                    <div className="glass-card w-full max-w-md rounded-2xl p-6 border border-white/10">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-white">Kelola Kategori</h3>
+                            <button onClick={onClose} className="text-gray-400 hover:text-white"><Icons.Close className="w-5 h-5"/></button>
+                        </div>
+                        <div className="flex gap-2 mb-6 bg-slate-900/50 p-1 rounded-xl">
+                            <button onClick={() => setActiveTab('income')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'income' ? 'bg-emerald-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}>Pemasukan</button>
+                            <button onClick={() => setActiveTab('expense')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'expense' ? 'bg-rose-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}>Pengeluaran</button>
+                        </div>
+                        <div className="flex gap-2 mb-6">
+                            <input type="text" placeholder="Nama kategori baru..." className="flex-1 glass-input rounded-xl px-4 py-3 text-sm" value={newCat} onChange={(e) => setNewCat(e.target.value)}/>
+                            <button onClick={handleAdd} className="bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-xl transition-colors"><Icons.Plus className="w-5 h-5"/></button>
+                        </div>
+                        <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                            {categories[activeTab].map(cat => (
+                                <div key={cat} className="flex justify-between items-center bg-slate-800/50 p-3 rounded-xl border border-white/5 hover:bg-slate-700/50 transition-colors group">
+                                    <span className="text-sm text-gray-300">{cat}</span>
+                                    <button onClick={() => handleDelete(cat)} className="text-gray-500 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity p-2"><Icons.Trash className="w-4 h-4"/></button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // LOGIN SCREEN
+        const LoginScreen = ({ onLogin }) => {
+            const [pass, setPass] = useState('');
+            const [err, setErr] = useState('');
+
+            const handleAdmin = (e) => {
+                e.preventDefault();
+                if (pass === 'MulyosariKAV57A') onLogin('admin');
+                else setErr('Password Salah!');
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center p-4 relative z-30">
+                    <div className="glass-card rounded-3xl p-10 w-full max-w-sm animate-fade-in text-center border border-white/10">
+                        <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-indigo-500/20 rotate-3">
+                            <Icons.Wallet className="w-8 h-8 text-white" />
+                        </div>
+                        <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Keuangan Dapur</h1>
+                        <p className="text-slate-400 text-sm font-medium mb-10 tracking-wide">ASRAMA MULYOSARI KAV 57A</p>
+                        <form onSubmit={handleAdmin} className="mb-8 text-left space-y-4">
+                            <div className="relative group">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
+                                    <Icons.Lock className="w-5 h-5"/>
+                                </div>
+                                <input type="password" placeholder="Password Admin..." className="w-full pl-12 pr-4 py-4 glass-input rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all text-sm font-medium placeholder-slate-500" value={pass} onChange={(e) => {setPass(e.target.value); setErr('')}} />
+                            </div>
+                            {err && <p className="text-rose-400 text-xs font-bold flex items-center gap-2">{err}</p>}
+                            <button type="submit" className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-indigo-500/20 hover:-translate-y-0.5 transition-all duration-300 active:scale-95 uppercase tracking-wider text-xs">Masuk sebagai Admin</button>
+                        </form>
+                        <div className="relative mb-8">
+                            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
+                            <div className="relative flex justify-center"><span className="bg-slate-900 px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest rounded-full">Akses Tamu</span></div>
+                        </div>
+                        <button onClick={() => onLogin('guest')} className="w-full py-3.5 border border-white/10 text-slate-300 font-bold rounded-xl hover:bg-white/5 transition-all flex items-center justify-center gap-3 group text-sm">
+                            <Icons.Users className="w-5 h-5 text-slate-500 group-hover:text-white transition-colors"/> <span>Lihat Laporan</span>
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // DASHBOARD CARD
+        const DashboardCard = ({ summary, isOnline }) => {
+            const hour = new Date().getHours();
+            const greeting = hour < 12 ? 'Selamat Pagi' : hour < 15 ? 'Selamat Siang' : hour < 18 ? 'Selamat Sore' : 'Selamat Malam';
+            
+            const totalFlow = summary.in + summary.out;
+            const inPercent = totalFlow === 0 ? 50 : (summary.in / totalFlow) * 100;
+            const outPercent = totalFlow === 0 ? 50 : (summary.out / totalFlow) * 100;
+
+            return (
+                <div className="glass-card rounded-3xl p-8 relative overflow-hidden mb-8 animate-fade-in border border-white/10">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 relative z-10">
+                        <div>
+                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2 flex items-center gap-2"><span className="w-2 h-2 bg-indigo-500 rounded-full"></span> {greeting}, PJ Masak</p>
+                            <h2 className="text-5xl font-bold text-white tracking-tighter">{formatRupiah(summary.bal)}</h2>
+                        </div>
+                        <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-bold border backdrop-blur-md shadow-lg ${isOnline ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+                            {isOnline ? <Icons.CloudCheck className="w-3 h-3"/> : <Icons.CloudOff className="w-3 h-3"/>}
+                            <span className="tracking-widest">{isOnline ? 'ONLINE' : 'OFFLINE'}</span>
+                        </div>
+                    </div>
+                    <div className="relative h-1.5 bg-slate-800 rounded-full overflow-hidden mb-8 flex">
+                        <div style={{width: `${inPercent}%`}} className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000"></div>
+                        <div style={{width: `${outPercent}%`}} className="h-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)] transition-all duration-1000"></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-6 relative z-10">
+                        <div className="bg-slate-800/40 rounded-2xl p-5 border border-white/5 hover:bg-slate-800/60 transition-colors">
+                            <div className="flex items-center gap-2 text-emerald-400 mb-2 text-[10px] font-bold uppercase tracking-widest"><Icons.TrendingUp className="w-4 h-4"/> Pemasukan Total</div>
+                            <p className="text-xl font-bold text-white">{formatRupiah(summary.in)}</p>
+                        </div>
+                        <div className="bg-slate-800/40 rounded-2xl p-5 border border-white/5 hover:bg-slate-800/60 transition-colors">
+                            <div className="flex items-center gap-2 text-rose-400 mb-2 text-[10px] font-bold uppercase tracking-widest"><Icons.TrendingDown className="w-4 h-4"/> Pengeluaran Total</div>
+                            <p className="text-xl font-bold text-white">{formatRupiah(summary.out)}</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // INPUT FORM
+        const InputForm = ({ onAdd, setNotification, categories, onUpdateCategories }) => {
+            const [form, setForm] = useState({ type: 'expense', amount: '', category: '', desc: '', date: new Date().toISOString().split('T')[0], person: '', invoiceNo: '', budgetType: 'regular' });
+            const [showCatModal, setShowCatModal] = useState(false);
+            
+            const handleSubmit = (e) => { 
+                e.preventDefault();
+                if(!form.amount) return;
+                onAdd({...form, amount: parseFloat(form.amount), person: form.type === 'income' ? form.person : '-', invoiceNo: form.invoiceNo || '-', budgetType: form.budgetType || 'regular', createdAt: firebase.firestore.Timestamp.now()}); 
+                setForm({...form, amount:'', desc:'', person:'', invoiceNo: '', budgetType: 'regular'});
+                setNotification("Transaksi berhasil dicatat");
+            };
+
+            return (
+                <>
+                    <div className="glass-card rounded-3xl p-8 sticky top-6 animate-fade-in text-white border border-white/10">
+                        <h3 className="font-bold text-white mb-8 text-xl flex items-center gap-3">
+                            <div className="bg-indigo-600 text-white p-2 rounded-xl shadow-lg shadow-indigo-500/30"><Icons.Plus className="w-5 h-5"/></div>
+                            Input Transaksi
+                        </h3>
+                        <div className="flex bg-slate-900/50 p-1.5 rounded-2xl mb-4">
+                            <button onClick={() => setForm({...form, type: 'expense'})} className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all duration-300 ${form.type === 'expense' ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/30' : 'text-slate-400 hover:text-white'}`}>PENGELUARAN</button>
+                            <button onClick={() => setForm({...form, type: 'income'})} className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all duration-300 ${form.type === 'income' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:text-white'}`}>PEMASUKAN</button>
+                        </div>
+                        <div className="mb-6">
+                            <label className="text-[10px] font-bold text-slate-400 block mb-2 ml-1 uppercase tracking-wider">Jenis Anggaran</label>
+                            <div className="flex gap-3">
+                                <button type="button" onClick={() => setForm({...form, budgetType: 'regular'})} className={`flex-1 p-3 rounded-xl border border-white/10 flex items-center justify-center gap-2 text-xs font-bold transition-all ${form.budgetType === 'regular' ? 'bg-blue-600/30 border-blue-500 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}><Icons.Users className="w-4 h-4"/> Harian (Senin-Sabtu)</button>
+                                <button type="button" onClick={() => setForm({...form, budgetType: 'riset'})} className={`flex-1 p-3 rounded-xl border border-white/10 flex items-center justify-center gap-2 text-xs font-bold transition-all ${form.budgetType === 'riset' ? 'bg-purple-600/30 border-purple-500 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}><Icons.Star className="w-4 h-4"/> Riset (Minggu)</button>
+                            </div>
+                        </div>
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="grid grid-cols-2 gap-5">
+                                <div className="group">
+                                    <label className="text-[10px] font-bold text-slate-400 block mb-2 ml-1 uppercase tracking-wider">Tanggal</label>
+                                    <input type="date" required className="w-full p-3 glass-input rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 transition-all font-medium" value={form.date} onChange={e => setForm({...form, date: e.target.value})} />
+                                </div>
+                                <div className="group">
+                                    <div className="flex justify-between items-center mb-2 ml-1">
+                                        <label className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Kategori</label>
+                                        <button type="button" onClick={() => setShowCatModal(true)} className="text-[10px] text-indigo-400 hover:text-white flex items-center gap-1 transition-colors"><Icons.Settings className="w-3 h-3"/> Edit</button>
+                                    </div>
+                                    <select className="w-full p-3 glass-input rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 transition-all font-medium [&>option]:text-black" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
+                                        <option value="">Pilih...</option>
+                                        {(form.type === 'income' ? categories.income : categories.expense).map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-5">
+                                {form.type === 'income' && (
+                                    <div className="group col-span-2">
+                                        <label className="text-[10px] font-bold text-slate-400 block mb-2 ml-1 uppercase tracking-wider">Dari Siapa?</label>
+                                        <select className="w-full p-3 glass-input rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 transition-all font-medium [&>option]:text-black" value={form.person} onChange={e => setForm({...form, person: e.target.value})}>
+                                            <option value="">Pilih Nama Anak Kos...</option>
+                                            {MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div className="group">
+                                <label className="text-[10px] font-bold text-slate-400 block mb-2 ml-1 uppercase tracking-wider">Nominal (Rp)</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-indigo-400 font-bold text-sm">Rp</div>
+                                    <input type="number" required min="1" placeholder="0" className="w-full pl-11 pr-4 py-4 glass-input rounded-xl text-2xl font-bold text-white focus:ring-2 focus:ring-indigo-500 transition-all placeholder-slate-600" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} />
+                                </div>
+                            </div>
+                            
+                            <div className="group">
+                                <label className="text-[10px] font-bold text-slate-400 block mb-2 ml-1 uppercase tracking-wider">Keterangan</label>
+                                <input type="text" placeholder="Contoh: Ayam 1kg..." className="w-full p-3 glass-input rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 transition-all font-medium placeholder-slate-500" value={form.desc} onChange={e => setForm({...form, desc: e.target.value})} />
+                            </div>
+                            
+                            <button className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-500 hover:shadow-xl hover:shadow-indigo-600/40 hover:-translate-y-1 transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 text-xs uppercase tracking-widest mt-2">
+                                <Icons.Plus className="w-4 h-4"/> Simpan Transaksi
+                            </button>
+                        </form>
+                    </div>
+                    <CategoryManagerModal isOpen={showCatModal} onClose={() => setShowCatModal(false)} categories={categories} onSave={onUpdateCategories} />
+                </>
+            );
+        };
+
+        // 4. REPORTS
+        const Reports = ({ transactions, onDelete, isAdmin, onUpdateNota }) => {
+            const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+            const filtered = useMemo(() => transactions.filter(t => t.date.startsWith(month)).sort((a,b) => new Date(a.date) - new Date(b.date)), [transactions, month]);
+            
+            const regExpenses = filtered.filter(t => t.type === 'expense' && (t.budgetType === 'regular' || !t.budgetType)).reduce((a,b) => a + b.amount, 0);
+            const risetExpenses = filtered.filter(t => t.type === 'expense' && t.budgetType === 'riset').reduce((a,b) => a + b.amount, 0);
+
+            const payersReg = useMemo(() => {
+                const p = new Set();
+                filtered.forEach(t => { 
+                    if (t.type === 'income' && t.person && t.person !== '-' && (t.budgetType === 'regular' || !t.budgetType)) p.add(t.person);
+                });
+                return p.size;
+            }, [filtered]);
+
+            const payersRiset = useMemo(() => {
+                const p = new Set();
+                filtered.forEach(t => { 
+                    if (t.type === 'income' && t.person && t.person !== '-' && t.budgetType === 'riset') p.add(t.person);
+                });
+                return p.size;
+            }, [filtered]);
+
+            const costReg = payersReg > 0 ? regExpenses / payersReg : 0;
+            const costRiset = payersRiset > 0 ? risetExpenses / payersRiset : 0;
+            
+            const memberData = useMemo(() => {
+                return MEMBERS.map(name => {
+                    const modalReg = filtered.filter(t => t.type === 'income' && t.person === name && (t.budgetType === 'regular' || !t.budgetType)).reduce((a,b) => a + b.amount, 0);
+                    const modalRiset = filtered.filter(t => t.type === 'income' && t.person === name && t.budgetType === 'riset').reduce((a,b) => a + b.amount, 0);
+                    const biayaReg = modalReg > 0 ? costReg : 0;
+                    const biayaRiset = modalRiset > 0 ? costRiset : 0;
+                    const sisaTotal = (modalReg - biayaReg) + (modalRiset - biayaRiset);
+                    return { name, modalReg, biayaReg, modalRiset, biayaRiset, sisaTotal };
+                });
+            }, [filtered, costReg, costRiset]);
+
+            let bal = 0;
+            const tableData = filtered.map((t, i) => {
+                if(t.type === 'income') bal += t.amount; else bal -= t.amount;
+                return { ...t, bal, no: i + 1 };
+            });
+
+            const handleEditNota = (id, currentNota) => {
+                const newNota = prompt("Masukkan No. Nota baru:", currentNota !== '-' ? currentNota : '');
+                if (newNota !== null) onUpdateNota(id, newNota || '-');
+            };
+
+            const handleExport = (type) => {
+                const fileName = `Laporan_Dapur_${month}`;
+                if (type === 'pdf') {
+                    window.print();
+                } else if (type === 'excel') {
+                    const combinedHtml = `
+                        <html>
+                        <head><meta charset='utf-8'></head>
+                        <body>
+                            <h2>Laporan Member</h2>
+                            ${document.getElementById('table-member').outerHTML}
+                            <br/><br/>
+                            <h2>Buku Kas</h2>
+                            ${document.getElementById('table-history').outerHTML}
+                        </body>
+                        </html>
+                    `;
+                    const blob = new Blob(['\ufeff', combinedHtml], { type: 'application/vnd.ms-excel' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = fileName + '.xls';
+                    link.click();
+                } else if (type === 'doc') {
+                    const content = document.getElementById('report-content').cloneNode(true);
+                    const noPrints = content.querySelectorAll('.no-print');
+                    noPrints.forEach(el => el.remove());
+                    
+                    const html = `
+                        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                        <head><meta charset='utf-8'><title>Laporan</title>
+                        <style>
+                            table { border-collapse: collapse; width: 100%; }
+                            th, td { border: 1px solid black; padding: 5px; }
+                            body { font-family: sans-serif; }
+                        </style>
+                        </head>
+                        <body>${content.innerHTML}</body>
+                        </html>
+                    `;
+                    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = fileName + '.doc';
+                    link.click();
+                }
+            }
+
+            return (
+                <div className="space-y-8 animate-fade-in">
+                    <div className="glass-card rounded-2xl p-4 flex flex-col md:flex-row justify-between items-center no-print gap-4">
+                        <h3 className="font-bold text-white flex items-center gap-3 text-lg px-2"><div className="bg-indigo-500/20 p-2 rounded-lg text-indigo-300 border border-indigo-500/30"><Icons.FileText className="w-5 h-5"/></div> Laporan Bulanan</h3>
+                        <div className="flex flex-wrap gap-2 bg-slate-900/50 p-1.5 rounded-xl border border-white/10 items-center">
+                            <input type="month" className="bg-transparent border border-white/10 p-2 rounded-lg text-sm outline-none focus:border-indigo-500 font-medium text-white [&::-webkit-calendar-picker-indicator]:invert mr-2" value={month} onChange={e => setMonth(e.target.value)} />
+                            
+                            <div className="flex items-center gap-1 border-l border-white/10 pl-2">
+                                <span className="text-[10px] uppercase font-bold text-slate-500 mr-1">Export:</span>
+                                <button onClick={() => handleExport('pdf')} className="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors">PDF</button>
+                                <button onClick={() => handleExport('excel')} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors">XLS</button>
+                                <button onClick={() => handleExport('doc')} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors">DOC</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* PRINT HEADER */}
+                    <div className="print-header">
+                        <h1 className="text-2xl font-bold uppercase border-b-2 border-black pb-2 mb-2">Laporan Keuangan Dapur Asrama</h1>
+                        <p className="text-gray-600 mb-4 font-medium">Periode: {new Date(month).toLocaleDateString('id-ID', {month:'long', year:'numeric'})}</p>
+                    </div>
+
+                    <div id="report-content" className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-1 glass-card rounded-3xl h-fit overflow-hidden border border-white/10 flex flex-col">
+                            <div className="bg-white/5 px-6 py-5 border-b border-white/10 backdrop-blur-sm"><h4 className="font-bold text-white flex items-center gap-2 text-xs uppercase tracking-wider"><Icons.Users className="w-4 h-4 text-indigo-400"/> Arus Kas Member</h4></div>
+                            <div className="overflow-x-auto">
+                                <table id="table-member" className="w-full text-[10px] text-left print-border">
+                                    <thead className="bg-black/30 text-indigo-200 font-bold uppercase tracking-wider border-b border-white/5 text-center">
+                                        <tr>
+                                            <th rowSpan="2" className="p-2 pl-3 text-left">Nama</th>
+                                            <th colSpan="2" className="p-2 border-b border-white/5">Reguler</th>
+                                            <th colSpan="2" className="p-2 border-b border-white/5 bg-white/5">Riset</th>
+                                            <th rowSpan="2" className="p-2 text-right pr-3">Sisa</th>
+                                        </tr>
+                                        <tr>
+                                            <th className="p-1 text-right">Mdl</th>
+                                            <th className="p-1 text-right">Bya</th>
+                                            <th className="p-1 text-right bg-white/5">Mdl</th>
+                                            <th className="p-1 text-right bg-white/5">Bya</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {memberData.map(m => (
+                                            <tr key={m.name} className="hover:bg-white/5 transition-colors">
+                                                <td className="p-2 pl-3 font-medium text-white">{m.name}</td>
+                                                <td className="p-2 text-right text-emerald-400/80 font-mono">{m.modalReg > 0 ? formatRupiah(m.modalReg).replace('Rp ','') : '-'}</td>
+                                                <td className="p-2 text-right text-rose-400/80 font-mono">{m.biayaReg > 0 ? formatRupiah(m.biayaReg).replace('Rp ','') : '-'}</td>
+                                                <td className="p-2 text-right text-emerald-400/80 font-mono bg-white/5">{m.modalRiset > 0 ? formatRupiah(m.modalRiset).replace('Rp ','') : '-'}</td>
+                                                <td className="p-2 text-right text-rose-400/80 font-mono bg-white/5">{m.biayaRiset > 0 ? formatRupiah(m.biayaRiset).replace('Rp ','') : '-'}</td>
+                                                <td className={`p-2 text-right pr-3 font-bold font-mono ${m.sisaTotal < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{formatRupiah(m.sisaTotal).replace('Rp ','')}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot className="bg-rose-500/10 font-bold text-[10px] border-t border-white/10 text-rose-300">
+                                        <tr>
+                                            <td className="p-2 pl-3">Total Bya</td>
+                                            <td colSpan="2" className="p-2 text-right">{formatRupiah(regExpenses).replace('Rp ','')}</td>
+                                            <td colSpan="2" className="p-2 text-right bg-white/5">{formatRupiah(risetExpenses).replace('Rp ','')}</td>
+                                            <td className="p-2"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div className="lg:col-span-2 glass-card rounded-3xl min-h-[500px] flex flex-col overflow-hidden border border-white/10">
+                            <div className="bg-white/5 px-6 py-5 border-b border-white/10 backdrop-blur-sm"><h4 className="font-bold text-white flex items-center gap-2 text-xs uppercase tracking-wider"><Icons.FileText className="w-4 h-4 text-indigo-400"/> Buku Kas Harian</h4></div>
+                            <div className="overflow-x-auto flex-1">
+                                <table id="table-history" className="w-full text-xs text-left print-border">
+                                    <thead className="bg-black/30 text-indigo-200 font-bold text-[10px] uppercase tracking-wider border-b border-white/5">
+                                        <tr>
+                                            <th className="p-4 pl-6">Tanggal</th>
+                                            <th className="p-4">No. Nota</th>
+                                            <th className="p-4">Uraian</th>
+                                            <th className="p-4">Jenis</th>
+                                            <th className="p-4 text-right text-emerald-400">Masuk</th>
+                                            <th className="p-4 text-right text-rose-400">Keluar</th>
+                                            <th className="p-4 text-right pr-6 bg-white/5 rounded-tr-lg text-white">Saldo</th>
+                                            {isAdmin && <th className="p-4 text-center no-print">Act</th>}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {tableData.length === 0 ? <tr><td colSpan={isAdmin?8:7} className="p-12 text-center text-slate-500 italic">Belum ada transaksi bulan ini.</td></tr> : 
+                                        tableData.map((t, i) => (
+                                            <tr key={t.id} className="hover:bg-indigo-500/10 group transition-colors duration-200 animate-slide-up" style={{animationDelay: `${i * 0.05}s`}}>
+                                                <td className="p-4 pl-6 whitespace-nowrap text-slate-400 text-[10px] font-medium">{formatDate(t.date).split(' ').slice(0,2).join(' ')}</td>
+                                                <td className={`p-4 text-[10px] font-mono cursor-pointer hover:text-white transition-colors ${isAdmin ? 'text-indigo-300' : 'text-slate-500'}`} onClick={() => isAdmin && handleEditNota(t.id, t.invoiceNo)} title={isAdmin ? "Klik untuk edit Nota" : ""}>
+                                                    {t.invoiceNo !== '-' ? t.invoiceNo : (isAdmin ? <span className="opacity-50 italic">+Nota</span> : '')}
+                                                    {isAdmin && <Icons.Edit className="w-3 h-3 inline ml-1 opacity-0 group-hover:opacity-100 transition-opacity"/>}
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="flex items-center gap-3">
+                                                        {getCategoryIcon(t.category)}
+                                                        <div><span className="font-bold text-slate-200 block">{t.category}</span><span className="text-[10px] text-slate-500 font-medium">{t.desc} {t.person !== '-' && `(${t.person})`}</span></div>
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 text-[10px]"><span className={`px-2 py-1 rounded-md ${t.budgetType === 'riset' ? 'bg-purple-500/20 text-purple-300' : 'bg-blue-500/20 text-blue-300'}`}>{t.budgetType === 'riset' ? 'Riset' : 'Harian'}</span></td>
+                                                <td className="p-4 text-right font-mono text-emerald-400 font-medium">{t.type==='income' ? formatRupiah(t.amount).replace('Rp ','') : '-'}</td>
+                                                <td className="p-4 text-right font-mono text-rose-400 font-medium">{t.type==='expense' ? formatRupiah(t.amount).replace('Rp ','') : '-'}</td>
+                                                <td className="p-4 text-right font-mono font-bold bg-white/5 pr-6 text-slate-200">{formatRupiah(t.bal).replace('Rp ','')}</td>
+                                                {isAdmin && <td className="p-4 text-center no-print opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => onDelete(t.id)} className="text-slate-500 hover:text-rose-400 p-2 rounded-lg hover:bg-rose-500/10 transition-colors"><Icons.Trash className="w-4 h-4"/></button></td>}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP ---
+        const App = () => {
+            const [role, setRole] = useState(null);
+            const [user, setUser] = useState(null);
+            const [tab, setTab] = useState('report');
+            const [notification, setNotification] = useState(null);
+            const [isOnline, setIsOnline] = useState(navigator.onLine);
+            const [categories, setCategories] = useState(DEFAULT_CATS);
+            
+            const [data, setData] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('transaksi_dapur_cache');
+                    return saved ? JSON.parse(saved) : [];
+                } catch (e) { return []; }
+            });
+            
+            useEffect(() => {
+                const handleOnline = () => setIsOnline(true);
+                const handleOffline = () => setIsOnline(false);
+                window.addEventListener('online', handleOnline);
+                window.addEventListener('offline', handleOffline);
+                return () => { window.removeEventListener('online', handleOnline); window.removeEventListener('offline', handleOffline); };
+            }, []);
+
+            useEffect(() => {
+                const unsubAuth = auth.onAuthStateChanged(async u => { 
+                    if(u) setUser(u); 
+                    else try { await auth.signInAnonymously(); } catch(e) { console.error("Auth Error", e); }
+                });
+                return () => unsubAuth();
+            }, []);
+
+            useEffect(() => {
+                if(!user) return;
+                const unsubDb = db.collection('artifacts').doc(appId).collection('transactions')
+                    .orderBy('date', 'desc')
+                    .onSnapshot(s => {
+                        const newData = s.docs.map(d => ({id: d.id, ...d.data()}));
+                        setData(newData);
+                        localStorage.setItem('transaksi_dapur_cache', JSON.stringify(newData));
+                        setIsOnline(true);
+                    }, err => { console.error("Sync Error", err); setIsOnline(false); });
+
+                const unsubCats = db.collection('artifacts').doc(appId).collection('settings').doc('categories')
+                    .onSnapshot(doc => {
+                        if (doc.exists) setCategories(doc.data());
+                        else db.collection('artifacts').doc(appId).collection('settings').doc('categories').set(DEFAULT_CATS);
+                    });
+
+                return () => { unsubDb(); unsubCats(); };
+            }, [user]);
+
+            const addTrans = (d) => db.collection('artifacts').doc(appId).collection('transactions').add(d);
+            const delTrans = (id) => confirm("Hapus transaksi ini?") && db.collection('artifacts').doc(appId).collection('transactions').doc(id).delete();
+            const updateNota = (id, newNota) => db.collection('artifacts').doc(appId).collection('transactions').doc(id).update({ invoiceNo: newNota });
+            
+            const updateCategories = (newCats) => {
+                setCategories(newCats);
+                db.collection('artifacts').doc(appId).collection('settings').doc('categories').set(newCats);
+                setNotification("Kategori diperbarui!");
+            };
+
+            const triggerNotification = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
+
+            const summary = useMemo(() => {
+                const totalIn = data.filter(t => t.type === 'income').reduce((a,b) => a+b.amount, 0);
+                const totalOut = data.filter(t => t.type === 'expense').reduce((a,b) => a+b.amount, 0);
+                return { bal: totalIn - totalOut, in: totalIn, out: totalOut };
+            }, [data]);
+
+            if (!role) return <LoginScreen onLogin={(r) => { setRole(r); setTab(r === 'admin' ? 'input' : 'report'); }} />;
+
+            return (
+                <div className="min-h-screen pb-24 w-full print-container">
+                    {notification && <div className="fixed top-6 left-1/2 transform -translate-x-1/2 bg-emerald-500 text-white px-6 py-3 rounded-full shadow-2xl z-50 flex items-center gap-2 transition-all duration-300 font-bold text-sm shadow-emerald-500/30 animate-fade-in"><Icons.CloudCheck className="w-5 h-5"/> {notification}</div>}
+                    <MusicPlayer />
+
+                    <div className="glass-card border-b border-white/10 sticky top-0 z-40 no-print backdrop-blur-xl">
+                        <div className="max-w-6xl mx-auto px-4 lg:px-8 py-3 flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-gradient-to-tr from-indigo-600 to-purple-600 text-white p-2 rounded-xl shadow-lg shadow-indigo-500/30"><Icons.Wallet className="w-5 h-5"/></div>
+                                <div>
+                                    <h1 className="text-lg font-bold text-white leading-tight tracking-tight">Keuangan Dapur</h1>
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_10px_rgba(52,211,153,0.8)]"></span>
+                                        <p className="text-[10px] text-indigo-200 font-bold uppercase tracking-wide">{role === 'admin' ? 'Administrator' : 'Tamu'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="hidden md:flex bg-black/30 p-1 rounded-xl backdrop-blur-sm border border-white/10">
+                                    {role === 'admin' && (
+                                        <button onClick={() => setTab('input')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${tab==='input'?'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30':'text-slate-400 hover:text-white'}`}>Input</button>
+                                    )}
+                                    <button onClick={() => setTab('report')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${tab==='report'?'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30':'text-slate-400 hover:text-white'}`}>Laporan</button>
+                                </div>
+                                <button onClick={() => setRole(null)} className="bg-white/5 p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all shadow-sm border border-white/10" title="Keluar"><Icons.LogOut className="w-4 h-4"/></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-4 lg:p-6 w-full max-w-6xl mx-auto fade-in-up">
+                        <DashboardCard summary={summary} isOnline={isOnline} />
+                        {tab === 'input' && role === 'admin' && (
+                            <div className="max-w-2xl mx-auto">
+                                <InputForm onAdd={addTrans} setNotification={triggerNotification} categories={categories} onUpdateCategories={updateCategories} />
+                            </div>
+                        )}
+                        {(tab === 'report' || role === 'guest') && (
+                            <Reports transactions={data} onDelete={delTrans} isAdmin={role === 'admin'} onUpdateNota={updateNota} />
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
